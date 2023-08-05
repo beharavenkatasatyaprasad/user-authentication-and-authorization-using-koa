@@ -1,7 +1,32 @@
 const jwt = require('jsonwebtoken');
 const User = require('../db/userModel');
+const bcrypt = require('bcryptjs');
 
 const secretKey = process.env.SECRET_KEY;
+
+async function loginUser(ctx) {
+  const { username, password } = ctx.request.body;
+
+  try {
+    // Find the user in the database based on the username
+    const user = await User.findOne({ username });
+    if (!user || !bcrypt.compareSync(password, user.password)) {
+      ctx.status = 401;
+      ctx.body = { error: 'Invalid credentials' };
+      return;
+    }
+
+    // Generate a JWT token and send it in the response
+    const token = jwt.sign({ _id: user._id, username: user.username }, secretKey, {
+      expiresIn: '1h',
+    });
+    ctx.body = { token };
+  } catch (error) {
+    console.error('Error during login', error);
+    ctx.status = 500;
+    ctx.body = { error: 'Internal Server Error' };
+  }
+}
 
 async function signupUser(ctx) {
   const { username, password } = ctx.request.body;
@@ -31,4 +56,4 @@ async function signupUser(ctx) {
   }
 }
 
-module.exports = { signupUser };
+module.exports = { loginUser, signupUser };
