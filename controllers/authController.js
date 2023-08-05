@@ -56,4 +56,23 @@ async function signupUser(ctx) {
   }
 }
 
-module.exports = { loginUser, signupUser };
+// Verify JWT token and extract user information
+async function verifyToken(ctx, next) {
+  const token = ctx.header.authorization?.replace('Bearer ', '');
+  if (!token) {
+    ctx.status = 401;
+    ctx.body = { error: 'Unauthorized - Missing token' };
+    return;
+  }
+
+  try {
+    const decoded = jwt.verify(token, secretKey);
+    ctx.state.user = decoded; // Save the decoded user information to the context state
+    await next();
+  } catch (error) {
+    ctx.status = 401;
+    ctx.body = { error: 'Unauthorized - Invalid token' };
+  }
+}
+
+module.exports = { loginUser, signupUser, verifyToken };
